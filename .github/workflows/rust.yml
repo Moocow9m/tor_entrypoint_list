@@ -1,0 +1,35 @@
+name: Rust
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 1 * * *'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Temporarily modify the rust toolchain version
+      run: rustup override set nightly
+    - name: Build
+      run: cargo build --verbose
+    - name: Run
+      run: cargo run --verbose
+    - name: Set up Git user
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    - name: Commit and push ip files
+      run: |
+        git add ipv4.txt ipv6.txt
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+        else
+          TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
+          git commit -m "AutoUpdate Lists ${TIMESTAMP}"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+        fi
